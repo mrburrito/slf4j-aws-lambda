@@ -18,9 +18,9 @@ import java.util.regex.Pattern;
  * does not cache Loggers and will create a new Logger for each
  * request.
  *
- * Log levels are configured via the lambdalogger.properties file
+ * Log levels are configured via the lambda-logger.properties file
  * at the root of the classpath. If this file is not found, logging
- * will be disabled. The lambdalogger.properties supports log level
+ * will be disabled. The lambda-logger.properties supports log level
  * configuration similar to log4j 1.2. The following properties may
  * be provided:
  *
@@ -60,7 +60,7 @@ import java.util.regex.Pattern;
  */
 public class LambdaLoggerFactory implements ILoggerFactory {
     /** The path to the configuration file. */
-    public static final String LAMBDA_LOGGER_PROPERTIES = "lambdalogger.properties";
+    public static final String LAMBDA_LOGGER_PROPERTIES = "lambda-logger.properties";
     /** The property key for configuring the root log level. */
     public static final String ROOT_LOGGER_KEY = "lambda.rootLogger";
     /** The property key prefix for configuring log levels for a hierarchical logger. */
@@ -81,10 +81,18 @@ public class LambdaLoggerFactory implements ILoggerFactory {
      * Initializes the factory, reading log levels from the classpath.
      */
     public LambdaLoggerFactory() {
+        this(LAMBDA_LOGGER_PROPERTIES);
+    }
+
+    /**
+     * Test constructor allowing for alternate config file.
+     * @param configFile the path to the config file
+     */
+    protected LambdaLoggerFactory(final String configFile) {
         LambdaLevel root = null;
         Map<String, LambdaLevel> levelMap = new HashMap<>();
         try {
-            InputStream is = LambdaLoggerFactory.class.getClassLoader().getResourceAsStream(LAMBDA_LOGGER_PROPERTIES);
+            InputStream is = LambdaLoggerFactory.class.getClassLoader().getResourceAsStream(configFile);
             Properties props = new Properties();
             props.load(is);
             for (String key : props.stringPropertyNames()) {
@@ -98,7 +106,7 @@ public class LambdaLoggerFactory implements ILoggerFactory {
                 if (ROOT_LOGGER_KEY.equals(key)) {
                     root = level;
                 } else {
-                    Matcher matcher = LOGGER_CONFIG_PTN.matcher(levelStr);
+                    Matcher matcher = LOGGER_CONFIG_PTN.matcher(key);
                     if (matcher.matches()) {
                         levelMap.put(matcher.group(1), level);
                     }
@@ -110,7 +118,7 @@ public class LambdaLoggerFactory implements ILoggerFactory {
             // a single event per line. This means stack traces will generate multiple
             // events.
             System.err.println(String.format("Unable to load %s. Defaulting to OFF: %s",
-                    LAMBDA_LOGGER_PROPERTIES, ex));
+                    configFile, ex));
             ex.printStackTrace(System.err);
         }
 
