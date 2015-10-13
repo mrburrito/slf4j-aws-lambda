@@ -9,6 +9,7 @@ import org.slf4j.helpers.MessageFormatter;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -36,7 +37,7 @@ public class LambdaLoggerAdapter extends MarkerIgnoringBase implements Logger {
             if (value != null) {
                 List<String> queue = LOG_QUEUE.get();
                 LOG_QUEUE.remove();
-                queue.forEach(msg -> value.log(msg));
+                queue.forEach(value::log);
             }
         }
     };
@@ -162,12 +163,14 @@ public class LambdaLoggerAdapter extends MarkerIgnoringBase implements Logger {
             String message;
             if (args != null && args.length > 0) {
                 // if we have no error and last element of args array is a Throwable,
-                // assume it should be logged as a Throwable and still included in
+                // assume it should be logged as a Throwable and not included in
                 // the formatting args
+                Object[] fmtArgs = args;
                 if (err == null && args[args.length - 1] instanceof Throwable) {
                     err = (Throwable) args[args.length - 1];
+                    fmtArgs = Arrays.copyOf(args, args.length-1);
                 }
-                message = MessageFormatter.arrayFormat(format, args).getMessage();
+                message = MessageFormatter.arrayFormat(format, fmtArgs).getMessage();
             } else {
                 message = format;
             }
